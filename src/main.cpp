@@ -11,7 +11,7 @@
 
 #include "lcd.h"
 
-#define MINPRESSURE 10
+#define MINPRESSURE 1
 #define MAXPRESSURE 2000
 
 // screen instantiation  
@@ -21,13 +21,15 @@ MCUFRIEND_kbv tft;
 const int thermPin  = A11;   // Analog Pin for thermosistor
 const int heaterPin = 33;    // Digital output for heater (relay)
 
-bool heaterOn = false;
+bool systemOn = false;
 double setPoint  = 25.0;      // target temperature 25 degrees C
-double tolerance = 1.0;       // allowable deviation before toggling
+
+double high_tolerance = 0.5;       // allowable deviation when heating before toggling off
+double low_tolerance = 2.0;        // allowable deviation when cooling before toggling on
 
 // Orientation
 const int XP = 6, XM = A2, YP = A1, YM = 7; //ID=0x9341
-const int TS_LEFT=187,TS_RIGHT=835,TS_TOP=885,TS_BOT=135;
+const int TS_LEFT=174,TS_RIGHT=863,TS_TOP=881,TS_BOT=117;
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
@@ -65,11 +67,11 @@ void setup() {
     initDisplay(readThermistor(), setPoint, "COOL");
 
     // intantiate buttons
-    five_up_btn.initButton(&tft, 60, 120, 50, 50, WHITE, CYAN, BLACK, "+5", 2);
-    one_up_btn.initButton(&tft, 130, 120, 50, 50, WHITE, CYAN, BLACK, "+1", 2);
-    one_down_btn.initButton(&tft, 200, 120, 50, 50, WHITE, CYAN, BLACK, "-1", 2);
-    five_down_btn.initButton(&tft, 270, 120, 50, 50, WHITE, CYAN, BLACK, "-5", 2);
-    start_stop_btn.initButton(&tft, 70, 200, 100, 50, WHITE, RED, GREEN, "ON", 2);
+    five_up_btn.initButton(&tft, 280, 165, 75, 100, WHITE, CYAN, BLACK, "+5", 2);
+    one_up_btn.initButton(&tft, 200, 165, 75, 100, WHITE, CYAN, BLACK, "+1", 2);
+    one_down_btn.initButton(&tft, 120, 165, 75, 100, WHITE, CYAN, BLACK, "-1", 2);
+    five_down_btn.initButton(&tft, 40, 165, 75, 100, WHITE, CYAN, BLACK, "-5", 2);
+    start_stop_btn.initButton(&tft, 240, 50, 100, 50, WHITE, RED, GREEN, "ON/OFF", 2);
     
     five_up_btn.drawButton(false);
     one_up_btn.drawButton(false);
@@ -83,18 +85,26 @@ void loop() {
 
     // Bang-Bang Control Logic
     // thermostat state indicator
-    if (temperatureC < setPoint - tolerance && heaterOn) {
+
+    double high_threshold = setPoint + high_tolerance;
+    double low_threshold = setPoint - low_tolerance;
+
+    if (temperatureC <= low_threshold && systemOn) {
         digitalWrite(heaterPin, HIGH); // Turn on heater
         updateDisplay(temperatureC, setPoint, "HEAT");
     }
-    else if (temperatureC > setPoint + tolerance && heaterOn) {
+    else if (temperatureC >= high_threshold && systemOn) {
         digitalWrite(heaterPin, LOW);  // Turn off heater
         updateDisplay(temperatureC, setPoint, "COOL");
     }
-    else if (!heaterOn) {
+    else if (!systemOn) {
+        digitalWrite(heaterPin, LOW);
         updateDisplay(temperatureC, setPoint, "OFF");
     }
-
+    else {
+        // inside threshold range
+        updateDisplay(temperatureC, setPoint, "STABLE");
+    } 
 
     // Handle touchscreen
     bool down = Touch_getXY();
@@ -140,8 +150,8 @@ void loop() {
     }
 
     if (start_stop_btn.justPressed()) {
-        start_stop_btn.drawButton(!heaterOn);
-        heaterOn = !heaterOn;
+        start_stop_btn.drawButton(!systemOn);
+        systemOn = !systemOn;
     }
 
     delay(2);
@@ -154,7 +164,7 @@ void loop() {
 double readThermistor() {
     // return temperature in C from thermosistor sensor
     double Vin = 4.86; // actual measured input voltage
-    double Vout = getAverageVout(thermPin, 30); // Convert ADC reading to volts
+    double Vout = getAverageVout(thermPin, 10); // Convert ADC reading to volts
     double Rfixed = 97000.0; // 100k Ohm resistor measured at 95k
 
     // Voltage Divider
@@ -163,11 +173,20 @@ double readThermistor() {
     double Rtherm = Rfixed * Vout / (Vin - Vout); // low side of voltage divider
 
     // Steinhart-Hart
-    double A = 3.5137043601e+01, B = -2.2548090240e+01, C = 6.0079813523e+00, D = -8.5076103273e-01,
-        E = 6.7526011417e-02, F = -2.8483415639e-03, G = 4.9883793734e-05;
+    double A = -2.1709474284e-01,
+        B = -4.0639498149e-01,
+        C = -3.3311193490e-01,
+        D = 3.7664473196e-01,
+        E = -1.2993255594e-01,
+        F = 2.3246013377e-02,
+        G = -2.4263061424e-03,
+        H = 1.4961189332e-04,
+        I = -5.0729651684e-06,
+        J = 7.3158484762e-08;
 
     double logRtherm = log(Rtherm);
-    double inv_T = A + B*logRtherm + C*pow(logRtherm, 2) + D*pow(logRtherm, 3) + E*pow(logRtherm, 4) + F*pow(logRtherm, 5) + G*pow(logRtherm, 6);
+    double inv_T = A + B*logRtherm + C*pow(logRtherm, 2) + D*pow(logRtherm, 3) + E*pow(logRtherm, 4) 
+            + F*pow(logRtherm, 5) + G*pow(logRtherm, 6) + H*pow(logRtherm, 7) + I*pow(logRtherm, 8) + J*pow(logRtherm, 9);
     double tempK = 1.0 / inv_T;
 
     Serial.print("Vout_Raw:\t"); Serial.print(analogRead(thermPin)); 
