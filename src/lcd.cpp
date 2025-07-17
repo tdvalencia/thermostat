@@ -19,15 +19,15 @@ void initDisplay(float currentTemp, float setTemp, String changeState) {
     tft.setTextColor(WHITE); tft.setTextSize(TEXTSIZE);
 
     // always need a title
-    tft.println("thermostat");
+    tft.println("thermostat (Celsius)");
     tft.println();
 
     // current temperature
-    String currentTemp_string = "current: " + String(currentTemp) + " C";
+    String currentTemp_string = "current: " + String(currentTemp);
     tft.println(currentTemp_string);
 
     // set temperature
-    String setTemp_string = "settemp: " + String(setTemp) + " C";
+    String setTemp_string = "settemp: " + String(setTemp);
     tft.println(setTemp_string);
     
     // invariance corresponding to enum values
