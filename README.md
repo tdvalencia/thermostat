@@ -21,7 +21,7 @@ A touchscreen-based thermostat system using an Arduino Due, designed to control 
 
 ## Thermistor Calibration
 
-- 12-point Steinhart-Hart equation (see `\test`)
+- 12-point Steinhart-Hart equation (see `test/`)
 - Accurate temperature range: 20°C – 150°C
 
 ## Circuit Notes

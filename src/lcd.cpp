@@ -1,4 +1,4 @@
-/* LCD interface for the temperature controller */
+/* LCD interface for the thermostat */
 
 #include "lcd.h"
 

@@ -1,5 +1,5 @@
 /*
-    3D Printer Temperature Controller
+    3D Print Bed Thermostat
     Written by: Tony Valencia
 */
 
