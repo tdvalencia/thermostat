@@ -1,6 +1,7 @@
+### Calibration Script for Extended Steinhart-Hart Coefficients
+
 import numpy as np
 
-# === Input your data here ===
 # Temperatures in Celsius
 temps_c = np.array([24.8, 36, 42.6, 55, 67.8, 75.8, 85.7, 93, 100, 116, 120, 150])
 
