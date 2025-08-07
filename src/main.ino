@@ -27,9 +27,13 @@ double setPoint  = 25.0;      // target temperature 25 degrees C
 double high_tolerance = 0.5;       // allowable deviation when heating before toggling off
 double low_tolerance = 2.0;        // allowable deviation when cooling before toggling on
 
-// Orientation
-const int XP = 6, XM = A2, YP = A1, YM = 7; //ID=0x9341
-const int TS_LEFT=174,TS_RIGHT=863,TS_TOP=881,TS_BOT=117;
+/* Orientation and pin inputs */
+
+// ID=0x9341
+// Pin configuration depends on screen you are using
+// This project used HiLetgo 2.4" ILI9341 240X320 TFT LCD
+const int XP=8, XM=A2, YP=A3, YM=9;
+const int TS_LEFT=845,TS_RIGHT=166,TS_TOP=877,TS_BOT=126;
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
@@ -42,10 +46,6 @@ bool Touch_getXY(void);
 
 double readThermistor();
 double getAverageVout(int pin, int samples);
-
-// debug
-void debugHeater();
-void debugThermistor();
 
 /* START ARDUINO EXECUTION */
 void setup() {
@@ -67,11 +67,11 @@ void setup() {
     initDisplay(readThermistor(), setPoint, "COOL");
 
     // intantiate buttons
-    five_up_btn.initButton(&tft, 280, 165, 75, 100, WHITE, CYAN, BLACK, "+5", 2);
-    one_up_btn.initButton(&tft, 200, 165, 75, 100, WHITE, CYAN, BLACK, "+1", 2);
-    one_down_btn.initButton(&tft, 120, 165, 75, 100, WHITE, CYAN, BLACK, "-1", 2);
-    five_down_btn.initButton(&tft, 40, 165, 75, 100, WHITE, CYAN, BLACK, "-5", 2);
-    start_stop_btn.initButton(&tft, 240, 50, 100, 50, WHITE, RED, GREEN, "ON/OFF", 2);
+    five_up_btn.initButton(&tft, 280, 190, 75, 100, WHITE, CYAN, BLACK, "+5", 2);
+    one_up_btn.initButton(&tft, 200, 190, 75, 100, WHITE, CYAN, BLACK, "+1", 2);
+    one_down_btn.initButton(&tft, 120, 190, 75, 100, WHITE, CYAN, BLACK, "-1", 2);
+    five_down_btn.initButton(&tft, 40, 190, 75, 100, WHITE, CYAN, BLACK, "-5", 2);
+    start_stop_btn.initButton(&tft, 270, 70, 100, 80, WHITE, RED, GREEN, "ON/OFF", 2);
     
     five_up_btn.drawButton(false);
     one_up_btn.drawButton(false);
@@ -114,10 +114,6 @@ void loop() {
     five_up_btn.press(down && five_up_btn.contains(pixel_x, pixel_y));
     five_down_btn.press(down && five_down_btn.contains(pixel_x, pixel_y));
     start_stop_btn.press(down && start_stop_btn.contains(pixel_x, pixel_y));
-
-    // if (down) {
-    //     tft.fillCircle(pixel_x, pixel_y, 3, GREEN); // temporary
-    // }
 
     if (one_up_btn.justReleased()) {
         one_up_btn.drawButton();
@@ -167,9 +163,9 @@ double readThermistor() {
     double Vout = getAverageVout(thermPin, 10); // Convert ADC reading to volts
     double Rfixed = 97000.0; // 100k Ohm resistor measured at 95k
 
-    // Voltage Divider
+    // Voltage Divider -- where the thermistor is placed matters which Rtherm
     // double Vtherm = Vin - Vout; // Voltage accross resistor for node voltage
-    // double Rtherm = Rfixed * ( Vin / Vtherm - 1 );
+    // double Rtherm = Rfixed * ( Vin / Vtherm - 1 ); // higher side of voltage divider
     double Rtherm = Rfixed * Vout / (Vin - Vout); // low side of voltage divider
 
     // Steinhart-Hart
@@ -196,11 +192,12 @@ double readThermistor() {
     Serial.print("\tResistance:\t"); Serial.print(Rtherm);
     Serial.print("\tTemperature\t"); Serial.println(tempK - 273.15);
 
-    return tempK - 273.15; // convert to C
+    return tempK - 273.15; // convert to Celsius
 }
 
 bool Touch_getXY(void)
 {
+    // ripped from MCUFRIEND_kbv example
     analogReadResolution(10);
     TSPoint p = ts.getPoint();
     analogReadResolution(12);
@@ -210,7 +207,7 @@ bool Touch_getXY(void)
     digitalWrite(XM, HIGH);
     bool pressed = (p.z > MINPRESSURE && p.z < MAXPRESSURE);
     if (pressed) {
-        pixel_x = map(p.y, TS_LEFT, TS_RIGHT, 0, tft.width()); //.kbv makes sense to me
+        pixel_x = map(p.y, TS_LEFT, TS_RIGHT, 0, tft.width());
         pixel_y = map(p.x, TS_BOT, TS_TOP, 0, tft.height());
 
         // Serial.print("Raw X:\t"); Serial.print(p.x);

@@ -2,7 +2,7 @@
 #include <Adafruit_GFX.h>
 #include <TouchScreen.h>
 
-#define MINPRESSURE 10
+#define MINPRESSURE 1
 #define MAXPRESSURE 1000
 
 #define	BLACK   0x0000
@@ -15,7 +15,7 @@
 #define WHITE   0xFFFF
 
 // Touchscreen pin configuration (matches your setup)
-const int XP = 6, XM = A2, YP = A1, YM = 7;
+const int XP=8, XM=A2, YP=A3, YM=9;
 
 // Use library's constructor for touchscreen
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);

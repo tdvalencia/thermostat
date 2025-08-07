@@ -25,14 +25,17 @@ void initDisplay(float currentTemp, float setTemp, String changeState) {
     // current temperature
     String currentTemp_string = "actual:  " + String(currentTemp);
     tft.println(currentTemp_string);
+    tft.println();  // add a newline
 
     // set temperature
     String setTemp_string = "target:  " + String(setTemp);
     tft.println(setTemp_string);
+    tft.println(); // add a newline
     
-    // invariance corresponding to enum values
+    // status of the system
     String status_string = "status:  " + String(changeState);
     tft.println(status_string);
+    tft.println(); // add a newline
 }
 
 void updateDisplay(float currentTemp, float setTemp, String changeState) {
@@ -40,14 +43,17 @@ void updateDisplay(float currentTemp, float setTemp, String changeState) {
     int y = 2 * TEXTHEIGHT; // Y position of the text
 
     // Clear the old value
-    tft.fillRect(x, y, 8 * TEXTWIDTH, 3 * TEXTHEIGHT, BLACK); 
+    tft.fillRect(x, y, 8 * TEXTWIDTH, 6 * TEXTHEIGHT, BLACK); 
 
-    // Set text properties and print new value
+    // Set text properties
     tft.setTextColor(WHITE); tft.setTextSize(TEXTSIZE);
+
+    // Set cursor at the first update position (right of 'actual')
+    // then print new values at every other line
     tft.setCursor(x, y);
-    tft.print(currentTemp);
-    tft.setCursor(x, y + TEXTHEIGHT);
-    tft.print(setTemp);
+    tft.print(currentTemp); tft.println();
     tft.setCursor(x, y + 2 * TEXTHEIGHT);
-    tft.print(changeState);
+    tft.print(setTemp); tft.println();
+    tft.setCursor(x, y + 4 * TEXTHEIGHT);
+    tft.print(changeState); tft.println();
 }
