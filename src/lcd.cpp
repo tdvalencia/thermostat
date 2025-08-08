@@ -7,6 +7,9 @@
 
 // defining lcd tft display elsewhere
 extern MCUFRIEND_kbv tft;
+extern Adafruit_GFX_Button one_up_btn, one_down_btn;
+extern Adafruit_GFX_Button five_up_btn, five_down_btn;
+extern Adafruit_GFX_Button on_off_btn;
 
 const int TEXTSIZE   = 2;
 const int TEXTWIDTH  = TEXTSIZE * 5;
@@ -36,6 +39,19 @@ void initDisplay(float currentTemp, float setTemp, String changeState) {
     String status_string = "status:  " + String(changeState);
     tft.println(status_string);
     tft.println(); // add a newline
+
+    // intantiate buttons
+    five_up_btn.initButton(&tft, 280, 190, 75, 100, WHITE, CYAN, BLACK, "+5", 2);
+    one_up_btn.initButton(&tft, 200, 190, 75, 100, WHITE, CYAN, BLACK, "+1", 2);
+    one_down_btn.initButton(&tft, 120, 190, 75, 100, WHITE, CYAN, BLACK, "-1", 2);
+    five_down_btn.initButton(&tft, 40, 190, 75, 100, WHITE, CYAN, BLACK, "-5", 2);
+    on_off_btn.initButton(&tft, 270, 70, 100, 80, WHITE, RED, GREEN, "ON/OFF", 2);
+    
+    five_up_btn.drawButton(false);
+    one_up_btn.drawButton(false);
+    one_down_btn.drawButton(false);
+    five_down_btn.drawButton(false);
+    on_off_btn.drawButton(false);
 }
 
 void updateDisplay(float currentTemp, float setTemp, String changeState) {
@@ -43,7 +59,7 @@ void updateDisplay(float currentTemp, float setTemp, String changeState) {
     int y = 2 * TEXTHEIGHT; // Y position of the text
 
     // Clear the old value
-    tft.fillRect(x, y, 8 * TEXTWIDTH, 6 * TEXTHEIGHT, BLACK); 
+    tft.fillRect(x, y, 10 * TEXTWIDTH, 6 * TEXTHEIGHT, BLACK); 
 
     // Set text properties
     tft.setTextColor(WHITE); tft.setTextSize(TEXTSIZE);

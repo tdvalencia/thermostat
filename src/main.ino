@@ -37,11 +37,12 @@ const int TS_LEFT=845,TS_RIGHT=166,TS_TOP=877,TS_BOT=126;
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
+// All the buttons on the screen
 Adafruit_GFX_Button one_up_btn, one_down_btn;
 Adafruit_GFX_Button five_up_btn, five_down_btn;
-Adafruit_GFX_Button start_stop_btn;
+Adafruit_GFX_Button on_off_btn;
 
-int pixel_x, pixel_y;
+int pixel_x, pixel_y;   // pixels coordinates of touch point
 bool Touch_getXY(void);
 
 double readThermistor();
@@ -57,35 +58,20 @@ void setup() {
     tft.begin(ID);
     tft.setRotation(3);
 
-    analogReadResolution(12);
+    analogReadResolution(12);       // 12-bit resolution for more accurate ADC readings
 
     pinMode(heaterPin, OUTPUT);
-    digitalWrite(heaterPin, LOW); // Heater off initially
+    digitalWrite(heaterPin, LOW);   // Heater off initially
 
     delay(500);
 
     initDisplay(readThermistor(), setPoint, "COOL");
-
-    // intantiate buttons
-    five_up_btn.initButton(&tft, 280, 190, 75, 100, WHITE, CYAN, BLACK, "+5", 2);
-    one_up_btn.initButton(&tft, 200, 190, 75, 100, WHITE, CYAN, BLACK, "+1", 2);
-    one_down_btn.initButton(&tft, 120, 190, 75, 100, WHITE, CYAN, BLACK, "-1", 2);
-    five_down_btn.initButton(&tft, 40, 190, 75, 100, WHITE, CYAN, BLACK, "-5", 2);
-    start_stop_btn.initButton(&tft, 270, 70, 100, 80, WHITE, RED, GREEN, "ON/OFF", 2);
-    
-    five_up_btn.drawButton(false);
-    one_up_btn.drawButton(false);
-    one_down_btn.drawButton(false);
-    five_down_btn.drawButton(false);
-    start_stop_btn.drawButton(false);
 }
 
 void loop() {
     double temperatureC = readThermistor(); // have temperature in celcius
 
-    // Bang-Bang Control Logic
-    // thermostat state indicator
-
+    // Bang-Bang Control and thermostat state logic
     double high_threshold = setPoint + high_tolerance;
     double low_threshold = setPoint - low_tolerance;
 
@@ -113,8 +99,10 @@ void loop() {
     one_down_btn.press(down && one_down_btn.contains(pixel_x, pixel_y));
     five_up_btn.press(down && five_up_btn.contains(pixel_x, pixel_y));
     five_down_btn.press(down && five_down_btn.contains(pixel_x, pixel_y));
-    start_stop_btn.press(down && start_stop_btn.contains(pixel_x, pixel_y));
+    on_off_btn.press(down && on_off_btn.contains(pixel_x, pixel_y));
 
+
+    // 1 button press logic
     if (one_up_btn.justReleased()) {
         one_up_btn.drawButton();
     }
@@ -130,6 +118,7 @@ void loop() {
         setPoint -= 1;
     }
 
+    // 5 button press logic
     if (five_up_btn.justReleased()) {
         five_up_btn.drawButton();
     }
@@ -145,8 +134,9 @@ void loop() {
         setPoint -= 5;
     }
 
-    if (start_stop_btn.justPressed()) {
-        start_stop_btn.drawButton(!systemOn);
+    // ON/OFF button logic
+    if (on_off_btn.justPressed()) {
+        on_off_btn.drawButton(!systemOn);
         systemOn = !systemOn;
     }
 
@@ -161,14 +151,29 @@ double readThermistor() {
     // return temperature in C from thermosistor sensor
     double Vin = 4.86; // actual measured input voltage
     double Vout = getAverageVout(thermPin, 10); // Convert ADC reading to volts
-    double Rfixed = 97000.0; // 100k Ohm resistor measured at 95k
+    double Rfixed = 97000.0; // 100k Ohm resistor measured at 97k
 
-    // Voltage Divider -- where the thermistor is placed matters which Rtherm
+    /** 
+     * Voltage Divider -- where the thermistor is placed matters which Rtherm
+     * 
+     * Arduino Due is 3.3V logic so thermistor was measured from bottom of voltage
+     * divider to get a lower maximum voltage into the ADC which yielded more accurate 
+     * readings in range of 20-150 degrees C
+     * 
+    */
+
     // double Vtherm = Vin - Vout; // Voltage accross resistor for node voltage
     // double Rtherm = Rfixed * ( Vin / Vtherm - 1 ); // higher side of voltage divider
+
     double Rtherm = Rfixed * Vout / (Vin - Vout); // low side of voltage divider
 
-    // Steinhart-Hart
+    /** 
+     * Steinhart-Hart Equation
+     * 
+     * Wikipedia gave a good explantion of the equation.
+     * Coefficients were calculated using steinhart-hart.py in test directory.
+     * Data was collected from thermistor readings at various temperatures.
+     */
     double A = -2.1709474284e-01,
         B = -4.0639498149e-01,
         C = -3.3311193490e-01,
@@ -195,15 +200,15 @@ double readThermistor() {
     return tempK - 273.15; // convert to Celsius
 }
 
-bool Touch_getXY(void)
-{
-    // ripped from MCUFRIEND_kbv example
-    analogReadResolution(10);
+bool Touch_getXY(void) {
+    /* ripped from MCUFRIEND_kbv example with modifications */
+
+    analogReadResolution(10);   // touchscreen requires 10-bit resolution
     TSPoint p = ts.getPoint();
-    analogReadResolution(12);
-    pinMode(YP, OUTPUT);      //restore shared pins
+    analogReadResolution(12);   // 12-bit resolution for more accurate ADC readings
+    pinMode(YP, OUTPUT);        // restore shared pins
     pinMode(XM, OUTPUT);
-    digitalWrite(YP, HIGH);   //because TFT control pins
+    digitalWrite(YP, HIGH);     // because TFT control pins
     digitalWrite(XM, HIGH);
     bool pressed = (p.z > MINPRESSURE && p.z < MAXPRESSURE);
     if (pressed) {
@@ -219,13 +224,18 @@ bool Touch_getXY(void)
 }
 
 double getAverageVout(int pin, int samples = 10) {
-    // convert ADC analogRead to Volts
+    /**
+     * Average thermistor values after 10 samples to reduce noise 
+     * 
+     * Remember that Ardiuno Due has 3.3V logic. Analog Resolution is 12-bit
+     * so analogRead values are in range of 0-4095.
+     */
     long total = 0;
     for (int i = 0; i < samples; i++) {
         total += analogRead(pin);
         delay(2); // allow settling
     }
-    double Vcc = 3.3; // your measured value
+    double Vcc = 3.3; // 3.3V logic for Arduino Due
     double avg = total / (double)samples;
-    return avg * (Vcc / 4095.0);
+    return avg * (Vcc / 4095.0); // convert to volts
 }

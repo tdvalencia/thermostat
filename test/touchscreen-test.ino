@@ -1,3 +1,10 @@
+/**
+ * Quick Arduino sketch to test touchscreen functionality.
+ * Ideally will place a green dot where the screen is touched.
+ * 
+ * ChatGPT can generate code for this though.
+ */
+
 #include <MCUFRIEND_kbv.h>
 #include <Adafruit_GFX.h>
 #include <TouchScreen.h>
